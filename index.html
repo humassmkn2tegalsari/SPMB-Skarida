@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+    <meta name="theme-color" content="#059669">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SPMB Skarida">
+    <title>SPMB - SMKN 2 Tegalsari</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --glass-bg: rgba(255,255,255,0.75);
+            --glass-border: rgba(255,255,255,0.4);
+            --aero-shadow: 0 8px 32px 0 rgba(31,38,135,0.07);
+        }
+        body {
+            font-family:'Plus Jakarta Sans',sans-serif;
+            background: radial-gradient(circle at top left,#ecfdf5 0%,#ffffff 40%,#f0f9ff 100%);
+            background-attachment: fixed;
+            color:#1e293b; overflow-x:hidden;
+            -webkit-tap-highlight-color:transparent; font-size:14px;
+        }
+        .glass-card { background:var(--glass-bg); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+            border:1px solid var(--glass-border); box-shadow:var(--aero-shadow); }
+        .aero-blur { backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); }
+        .animate-float { animation:float 6s ease-in-out infinite; }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        .gradient-text-siswa { background:linear-gradient(135deg,#059669 0%,#10b981 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .gradient-text-admin { background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .tap-scale { transition:transform .2s cubic-bezier(.4,0,.2,1); }
+        .tap-scale:active { transform:scale(.95); }
+        .animate-in { animation:slideUp .5s cubic-bezier(.16,1,.3,1); }
+        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+        .form-input {
+            width:100%; padding:.6rem .875rem; background:rgba(255,255,255,.6);
+            border:1px solid #e2e8f0; border-radius:.75rem; font-size:.85rem; font-weight:500;
+            transition:all .3s ease; outline:none;
+        }
+        .form-input:focus { background:#fff; border-color:#059669; box-shadow:0 0 0 3px rgba(5,150,105,.1); }
+
+        .input-locked {
+            background:#f1f5f9 !important; color:#64748b !important;
+            cursor:not-allowed !important; border-color:#e2e8f0 !important;
+        }
+
+        .modal-backdrop { background:rgba(15,23,42,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+        .modal-slide-in { animation:modalSlide .4s cubic-bezier(.16,1,.3,1); }
+        @keyframes modalSlide { from{opacity:0;transform:translateY(40px) scale(.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+        .custom-scrollbar::-webkit-scrollbar { height:6px; width:6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color:#cbd5e1; border-radius:20px; }
+
+        .hide { display:none !important; }
+        .siswa-only { display:none !important; }
+        .admin-only  { display:none !important; }
+        body.role-siswa .siswa-only { display:inherit !important; }
+        body.role-admin .admin-only { display:inherit !important; }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[100px] -z-10 animate-pulse"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[100px] -z-10"></div>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed top-6 inset-x-4 z-[300] flex justify-center pointer-events-none hide">
+        <div id="toastContent" class="aero-blur bg-white/95 border px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 pointer-events-auto transform transition-all duration-300 translate-y-[-20px] opacity-0">
+            <i id="toastIcon" data-lucide="info" class="w-4 h-4"></i>
+            <span id="toastMessage" class="font-bold text-xs tracking-tight text-slate-700">Pesan</span>
+        </div>
+    </div>
+
+    <!-- HEADER (LOGO STATIS - TANPA FUNGSI KLIK) -->
+    <header class="sticky top-4 z-50 mx-4 md:mx-auto max-w-4xl">
+        <div class="glass-card rounded-2xl p-3 flex items-center justify-between">
+            <!-- 🔑 LOGO DIHAPUS FUNGSI KLIK - Hanya branding statis -->
+            <div class="flex items-center gap-3">
+                <img src="https://lh3.googleusercontent.com/d/15zyF01OHtEgTl8p6bvEkz7xw30ByE2en" alt="Logo" class="w-9 h-9 object-contain drop-shadow-md">
+                <div class="hidden sm:block">
+                    <h1 class="text-sm font-black text-slate-800 leading-tight">SPMB Digital</h1>
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">SMK Negeri 2 Tegalsari</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="roleBadge" class="badge px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">Tamu</span>
+                <button id="btnLogout" onclick="logout()" class="w-9 h-9 flex items-center justify-center bg-rose-500/10 text-rose-500 rounded-lg hover:bg-rose-500/20 transition-colors tap-scale hide">
+                    <i data-lucide="power" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-4 md:p-6 pb-24 relative z-10">
+
+        <!-- ================= VIEW 1: HOME ================= -->
+        <div id="viewHome" class="animate-in space-y-6">
+            <div class="text-center py-6 space-y-1">
+                <h2 class="text-3xl font-black gradient-text-siswa tracking-tight">Penerimaan Murid Baru</h2>
+                <p class="text-slate-500 text-sm font-medium">Tahun Pelajaran 2026/2027</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
+                <div class="glass-card p-6 rounded-2xl cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all group tap-scale border-l-4 border-emerald-500" onclick="showModal('modalRegisterSiswa')">
+                    <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform"><i data-lucide="user-plus" class="w-6 h-6"></i></div>
+                    <h3 class="text-lg font-black text-slate-800 mb-1">Daftar Sebagai Calon Murid</h3>
+                    <p class="text-xs text-slate-500 font-medium leading-relaxed">Buat akun dengan NISN & No. HP, lalu isi formulir pendaftaran secara mandiri.</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all group tap-scale border-l-4 border-indigo-500" onclick="handleAdminPortalClick()">
+                    <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
+                    <h3 class="text-lg font-black text-slate-800 mb-1">Portal Panitia / Admin</h3>
+                    <p class="text-xs text-slate-500 font-medium leading-relaxed">Login khusus untuk verifikasi data dan export data pendaftar.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 2: DASHBOARD SISWA ================= -->
+        <div id="viewDashboardSiswa" class="hide animate-in space-y-5 siswa-only">
+            <div class="glass-card p-6 rounded-2xl text-center space-y-4">
+                <div class="w-16 h-16 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center"><i data-lucide="user-check" class="w-8 h-8"></i></div>
+                <div>
+                    <h2 class="text-xl font-black text-slate-800" id="dashNamaSiswa">Nama Siswa</h2>
+                    <p class="text-slate-500 text-xs">NISN: <span id="dashNisnSiswa" class="font-mono font-bold">-</span></p>
+                    <p class="text-slate-400 text-[10px] mt-1">No. Pendaftaran: <span id="dashNoDaftar" class="font-mono font-bold">-</span></p>
+                </div>
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-wider" id="dashStatusBadge">
+                    <i data-lucide="clock" class="w-3 h-3"></i> Belum Mendaftar
+                </div>
+                <p id="dashInfoEdit" class="text-[10px] text-slate-400 font-medium"></p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4">
+                <div id="btnCetakKartu" class="glass-card p-5 rounded-2xl cursor-pointer hover:bg-white transition-colors tap-scale" onclick="printKartu()">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div id="btnCetakIcon" class="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center"><i data-lucide="printer" class="w-5 h-5"></i></div>
+                        <h3 id="btnCetakTitle" class="font-black text-slate-800 text-sm">Cetak Bukti Daftar</h3>
+                    </div>
+                    <p id="btnCetakDesc" class="text-[10px] text-slate-500">Cetak kartu tanda pendaftaran sebagai bukti sah.</p>
+                </div>
+
+                <div class="glass-card p-5 rounded-2xl">
+                    <button id="btnEditBiodata" onclick="enterEditMode()" class="tap-scale w-full py-3 bg-indigo-600 text-white rounded-xl font-black text-xs tracking-widest uppercase flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i> Edit Biodata (1x)
+                    </button>
+                    <p class="text-[9px] text-slate-400 mt-2 text-center font-medium">
+                        Pastikan data yang Anda isi sudah benar. Perubahan data hanya dapat dilakukan <b>1 kali</b>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 3: FORM SISWA ================= -->
+        <div id="viewFormSiswa" class="hide animate-in siswa-only">
+            <div id="bannerEdit" class="hide mb-3 glass-card p-3 rounded-xl border-l-4 border-amber-400 bg-amber-50/80">
+                <p class="text-[10px] font-bold text-amber-700 flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> MODE EDIT AKTIF — Anda hanya memiliki <b>1x</b> kesempatan mengubah data. Periksa kembali sebelum menyimpan!
+                </p>
+            </div>
+
+            <div class="glass-card p-5 md:p-8 rounded-2xl">
+                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-800">Formulir Pendaftaran SPMB</h2>
+                        <p class="text-slate-500 text-xs mt-0.5">Minat Jurusan: <span id="displayJurusan" class="font-bold text-emerald-600">Belum Dipilih</span></p>
+                    </div>
+                </div>
+
+                <form id="fSiswa" onsubmit="submitFormSPMB(event)" class="space-y-8">
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-2"><div class="w-6 h-6 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center"><i data-lucide="user" class="w-3 h-3"></i></div><h3 class="font-black text-slate-700 uppercase tracking-wide text-xs">A. Data Pribadi</h3></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2"><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">NISN <span class="text-rose-500">*</span> <span class="text-slate-400 normal-case">(otomatis dari akun)</span></label><input type="text" class="form-input bg-slate-100 cursor-not-allowed" name="nisn" id="formNisn" readonly></div>
+                            <div class="md:col-span-2"><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">NIK <span class="text-rose-500">*</span></label><input type="text" class="form-input" name="nik" required maxlength="16" pattern="\d{16}"></div>
+                            <div class="md:col-span-2"><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Nama Lengkap <span class="text-rose-500">*</span></label><input type="text" class="form-input" name="namaLengkap" required></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Jenis Kelamin <span class="text-rose-500">*</span></label><select class="form-input" name="jenisKelamin" required><option value="">Pilih</option><option>Laki-laki</option><option>Perempuan</option></select></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Tempat Lahir <span class="text-rose-500">*</span></label><input type="text" class="form-input" name="tempatLahir" required></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Tanggal Lahir <span class="text-rose-500">*</span></label><input type="date" class="form-input" name="tanggalLahir" required></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Agama <span class="text-rose-500">*</span></label><select class="form-input" name="agama" required><option value="">Pilih</option><option>Islam</option><option>Kristen</option><option>Katolik</option><option>Hindu</option><option>Buddha</option><option>Konghucu</option></select></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-4 border-t border-slate-100">
+                        <div class="flex items-center gap-2"><div class="w-6 h-6 rounded bg-blue-100 text-blue-600 flex items-center justify-center"><i data-lucide="home" class="w-3 h-3"></i></div><h3 class="font-black text-slate-700 uppercase tracking-wide text-xs">B. Alamat Lengkap</h3></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2"><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Jalan & No. Rumah <span class="text-rose-500">*</span></label><input type="text" class="form-input" name="noRumah" required></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">RT / RW</label><div class="flex gap-2"><input type="text" class="form-input" name="rt" placeholder="001"><input type="text" class="form-input" name="rw" placeholder="002"></div></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Desa / Kelurahan</label><input type="text" class="form-input" name="kelurahan"></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Kecamatan</label><input type="text" class="form-input" name="kecamatan"></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">No. HP / WhatsApp <span class="text-rose-500">*</span></label><input type="tel" class="form-input" name="noTelepon" required></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-4 border-t border-slate-100">
+                        <div class="flex items-center gap-2"><div class="w-6 h-6 rounded bg-amber-100 text-amber-600 flex items-center justify-center"><i data-lucide="graduation-cap" class="w-3 h-3"></i></div><h3 class="font-black text-slate-700 uppercase tracking-wide text-xs">C. Riwayat Pendidikan</h3></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2"><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Asal SMP / MTs <span class="text-rose-500">*</span></label><input type="text" class="form-input" name="asalSMPMTs" required placeholder="Nama Lengkap Sekolah Asal"></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Tahun Lulus</label><input type="number" class="form-input" name="tahunLulus" min="2020" max="2030" placeholder="2026"></div>
+                            <div><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Jalur Pendaftaran</label><select class="form-input" name="jalurPendaftaran"><option value="Reguler">Reguler</option><option value="Zonasi">Zonasi</option><option value="Prestasi">Prestasi</option><option value="Afirmasi">Afirmasi</option></select></div>
+                            <div class="md:col-span-2"><label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase">Minat Jurusan <span class="text-rose-500">*</span></label>
+                                <select class="form-input" name="jurusan" required>
+                                    <option value="">Pilih Minat Jurusan</option>
+                                    <option value="APHP">APHP (Agribisnis Pengolahan)</option>
+                                    <option value="DPIB">DPIB (Desain Bangunan)</option>
+                                    <option value="PSPT">PSPT (Produksi TV)</option>
+                                    <option value="KKBT">KKBT (Batik & Tekstil)</option>
+                                    <option value="TKR">TKR (Teknik Kendaraan)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="formActions" class="pt-6 border-t border-slate-200 flex flex-col md:flex-row gap-3">
+                        <button type="submit" class="tap-scale flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-black text-xs tracking-widest shadow-lg shadow-emerald-500/20 uppercase flex items-center justify-center gap-2" id="btnSave">
+                            <i data-lucide="send" class="w-4 h-4"></i> Simpan & Kirim Data
+                        </button>
+                    </div>
+                    <p id="formLockNotice" class="hide text-[10px] text-rose-500 font-bold text-center mt-2">
+                        Data terkunci. Klik tombol "Edit Biodata" di dashboard untuk mengubah.
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 4: DATA ADMIN ================= -->
+        <div id="viewDataAdmin" class="hide animate-in space-y-5 admin-only">
+            <div class="grid grid-cols-3 gap-3">
+                <div class="glass-card p-3 rounded-xl text-center"><div class="text-xl font-black text-indigo-600" id="sTotal">0</div><div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Total Pendaftar</div></div>
+                <div class="glass-card p-3 rounded-xl text-center"><div class="text-xl font-black text-emerald-600" id="sDiterima">0</div><div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Diverifikasi</div></div>
+                <div class="glass-card p-3 rounded-xl text-center"><div class="text-xl font-black text-amber-600" id="sPending">0</div><div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Menunggu</div></div>
+            </div>
+            <div class="glass-card p-3 rounded-xl flex flex-col md:flex-row gap-3 items-center">
+                <div class="relative flex-1 w-full">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                    <input id="search" class="w-full pl-10 pr-3 py-2 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Cari Nama, NISN, atau Asal Sekolah..." onkeyup="applyFilters()">
+                </div>
+                <select id="filterJurusan" class="w-full md:w-auto py-2 px-3 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold outline-none" onchange="applyFilters()">
+                    <option value="">Semua Minat Jurusan</option><option value="APHP">APHP</option><option value="DPIB">DPIB</option><option value="PSPT">PSPT</option><option value="KKBT">KKBT</option><option value="TKR">TKR</option>
+                </select>
+                <select id="filterStatus" class="w-full md:w-auto py-2 px-3 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold outline-none" onchange="applyFilters()">
+                    <option value="">Semua Status</option><option value="Menunggu">Menunggu</option><option value="Diterima">Diterima</option><option value="Ditolak">Ditolak</option>
+                </select>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button class="tap-scale flex-1 md:flex-none py-2 px-3 bg-slate-100 text-slate-600 rounded-lg font-bold text-[9px] hover:bg-slate-200" onclick="loadDataAdmin()">Refresh</button>
+                    <button class="tap-scale flex-1 md:flex-none py-2 px-3 bg-indigo-500 text-white rounded-lg font-bold text-[9px] shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-1" onclick="exportXls()"><i data-lucide="file-spreadsheet" class="w-3 h-3"></i> Excel</button>
+                </div>
+            </div>
+            <div class="glass-card rounded-xl overflow-hidden custom-scrollbar">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="bg-slate-50/50 border-b border-slate-100">
+                            <th class="p-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">No</th>
+                            <th class="p-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">NISN</th>
+                            <th class="p-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">Nama</th>
+                            <th class="p-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">Asal Sekolah</th>
+                            <th class="p-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">Jurusan</th>
+                            <th class="p-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">Status</th>
+                            <th class="p-3 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">Aksi</th>
+                        </tr></thead>
+                        <tbody id="tbody" class="text-sm font-medium text-slate-700"><tr><td colspan="7" class="p-6 text-center text-slate-400 font-bold">Klik Refresh untuk memuat data</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL REGISTER -->
+    <div id="modalRegisterSiswa" class="modal fixed inset-0 z-[1000] modal-backdrop flex items-center justify-center p-4 hide">
+        <div class="glass-card w-full max-w-sm rounded-2xl p-6 space-y-6 relative modal-slide-in bg-white/95">
+            <button onclick="hideModal('modalRegisterSiswa')" class="absolute top-4 right-4 w-7 h-7 flex items-center justify-center bg-slate-100 rounded-full hover:bg-rose-100 hover:text-rose-600 transition-colors tap-scale"><i data-lucide="x" class="w-3 h-3"></i></button>
+            <div class="text-center space-y-3">
+                <div class="w-16 h-16 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center"><i data-lucide="user-plus" class="w-8 h-8"></i></div>
+                <h1 class="text-xl font-black text-slate-800">Registrasi Akun</h1>
+                <p class="text-slate-400 text-[9px] font-bold tracking-widest uppercase">Calon Murid Baru</p>
+            </div>
+            <div class="space-y-4">
+                <div class="relative"><i data-lucide="hash" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i><input type="text" id="regNisn" class="w-full pl-10 pr-3 py-2.5 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500/10 outline-none" placeholder="NISN (10 Angka)" maxlength="10"></div>
+                <div class="relative"><i data-lucide="user" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i><input type="text" id="regNama" class="w-full pl-10 pr-3 py-2.5 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500/10 outline-none" placeholder="Nama Lengkap Sesuai Ijazah"></div>
+                <div class="relative"><i data-lucide="phone" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i><input type="tel" id="regHp" class="w-full pl-10 pr-3 py-2.5 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500/10 outline-none" placeholder="Nomor WhatsApp Aktif"></div>
+                <button id="btnRegSiswa" class="tap-scale w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-black text-xs tracking-widest shadow-lg shadow-emerald-500/20 uppercase" onclick="doRegisterSiswa()">Buat Akun & Lanjut</button>
+                <p class="text-center text-[9px] text-slate-400">Sudah punya akun? <span class="text-emerald-600 font-bold cursor-pointer" onclick="hideModal('modalRegisterSiswa');showModal('modalLoginSiswa')">Login di sini</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LOGIN SISWA -->
+    <div id="modalLoginSiswa" class="modal fixed inset-0 z-[1000] modal-backdrop flex items-center justify-center p-4 hide">
+        <div class="glass-card w-full max-w-sm rounded-2xl p-6 space-y-6 relative modal-slide-in bg-white/95">
+            <button onclick="hideModal('modalLoginSiswa')" class="absolute top-4 right-4 w-7 h-7 flex items-center justify-center bg-slate-100 rounded-full hover:bg-rose-100 hover:text-rose-600 transition-colors tap-scale"><i data-lucide="x" class="w-3 h-3"></i></button>
+            <div class="text-center space-y-3">
+                <div class="w-16 h-16 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center"><i data-lucide="log-in" class="w-8 h-8"></i></div>
+                <h1 class="text-xl font-black text-slate-800">Login Calon Murid</h1>
+            </div>
+            <div class="space-y-4">
+                <div class="relative"><i data-lucide="hash" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i><input type="text" id="logNisn" class="w-full pl-10 pr-3 py-2.5 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500/10 outline-none" placeholder="NISN" maxlength="10"></div>
+                <div class="relative"><i data-lucide="phone" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i><input type="tel" id="logHp" class="w-full pl-10 pr-3 py-2.5 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500/10 outline-none" placeholder="Nomor WhatsApp"></div>
+                <button id="btnLogSiswa" class="tap-scale w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-black text-xs tracking-widest shadow-lg shadow-emerald-500/20 uppercase" onclick="doLoginSiswa()">Masuk</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LOGIN ADMIN -->
+    <div id="modalLoginAdmin" class="modal fixed inset-0 z-[1000] modal-backdrop flex items-center justify-center p-4 hide">
+        <div class="glass-card w-full max-w-sm rounded-2xl p-6 space-y-6 relative modal-slide-in bg-white/95">
+            <button onclick="hideModal('modalLoginAdmin')" class="absolute top-4 right-4 w-7 h-7 flex items-center justify-center bg-slate-100 rounded-full hover:bg-rose-100 hover:text-rose-600 transition-colors tap-scale"><i data-lucide="x" class="w-3 h-3"></i></button>
+            <div class="text-center space-y-3">
+                <div class="w-16 h-16 mx-auto bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center"><i data-lucide="shield" class="w-8 h-8"></i></div>
+                <h1 class="text-xl font-black gradient-text-admin">Login Panitia</h1>
+            </div>
+            <div class="space-y-4">
+                <div class="relative"><i data-lucide="user" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i><input type="text" id="admUser" class="w-full pl-10 pr-3 py-2.5 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 outline-none" placeholder="Username"></div>
+                <div class="relative"><i data-lucide="key" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i><input type="password" id="admPass" class="w-full pl-10 pr-3 py-2.5 bg-white/50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 outline-none" placeholder="Password" onkeyup="if(event.key==='Enter')doLoginAdmin()"></div>
+                <button id="btnAdmLogin" class="tap-scale w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-black text-xs tracking-widest shadow-lg shadow-indigo-500/20 uppercase" onclick="doLoginAdmin()">Masuk Sistem</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbwD9jchAuuuvTU0L4jdEbkEEVErDyJebxTqQXuhbtvVNHbYokwsSyTEQ6TKpbcdFU9T/exec";
+
+let role = "guest", currentUser = null, dataAll = [], dataFilter = [];
+let isEditingMode = false;
+let savedSnapshot = null;
+
+const $ = id => document.getElementById(id);
+
+const toast = (m,t='ok') => {
+    const el=$('toast'), c=$('toastContent'), i=$('toastIcon'), msg=$('toastMessage');
+    msg.textContent=m; el.classList.remove('hide');
+    c.className="aero-blur bg-white/95 border px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 pointer-events-auto transform transition-all duration-300";
+    if(t==='er'){ c.classList.add('border-rose-200','text-rose-600'); i.setAttribute('data-lucide','alert-circle'); }
+    else { c.classList.add('border-emerald-200','text-emerald-600'); i.setAttribute('data-lucide','check-circle'); }
+    lucide.createIcons();
+    setTimeout(()=>c.classList.remove('translate-y-[-20px]','opacity-0'),10);
+    setTimeout(()=>{ c.classList.add('translate-y-[-20px]','opacity-0'); setTimeout(()=>el.classList.add('hide'),300); },3200);
+};
+const showModal = id => $(id).classList.remove('hide');
+const hideModal = id => $(id).classList.add('hide');
+
+function getCurrentNisn(){
+    if(currentUser && currentUser.nisn) return currentUser.nisn;
+    try{
+        const s = sessionStorage.getItem('spmb_user');
+        if(s){ const p = JSON.parse(s); if(p && p.nisn){ currentUser = p; return p.nisn; } }
+    }catch(e){}
+    return '';
+}
+
+function onNisnInput(e){ if($('formNisn')) $('formNisn').value = e.target.value; }
+function onRegNisnInput(e){ if($('formNisn')) $('formNisn').value = e.target.value; }
+
+function handleAdminPortalClick() {
+    if (role === 'admin') {
+        navigateTo('dataAdmin');
+    } else {
+        showModal('modalLoginAdmin');
+    }
+}
+
+function navigateTo(view){
+    const vHome = document.getElementById('viewHome');
+    const vSiswa = document.getElementById('viewDashboardSiswa');
+    const vForm = document.getElementById('viewFormSiswa');
+    const vAdmin = document.getElementById('viewDataAdmin');
+    
+    if(vHome) vHome.classList.add('hide');
+    if(vSiswa) vSiswa.classList.add('hide');
+    if(vForm) vForm.classList.add('hide');
+    if(vAdmin) vAdmin.classList.add('hide');
+
+    if(view === 'home'){
+        if(vHome) vHome.classList.remove('hide');
+    } else if(view === 'dashboardSiswa'){
+        if(role !== 'siswa') return navigateTo('home');
+        if(vSiswa) {
+            vSiswa.classList.remove('hide');
+            loadMyData();
+        }
+    } else if(view === 'formSiswa'){
+        if(role !== 'siswa') return navigateTo('home');
+        if(vForm) {
+            vForm.classList.remove('hide');
+            const n = getCurrentNisn();
+            if(n && $('formNisn')){ $('formNisn').value = n; } 
+            else { toast('Sesi berakhir, login ulang.','er'); logout(); return; }
+        }
+    } else if(view === 'dataAdmin'){
+        if(role !== 'admin') return navigateTo('home');
+        if(vAdmin) {
+            vAdmin.classList.remove('hide');
+            loadDataAdmin();
+        }
+    }
+    
+    window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function updateUIRole(){
+    document.body.className = role==='guest' ? '' : `role-${role}`;
+    const b=$('roleBadge');
+    if(role==='siswa'){
+        b.textContent='Calon Murid';
+        b.className='badge px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-600 border border-emerald-200';
+        $('btnLogout').classList.remove('hide');
+    } else if(role==='admin'){
+        b.textContent='Panitia';
+        b.className='badge px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-indigo-600 text-white border border-indigo-500';
+        $('btnLogout').classList.remove('hide');
+    } else {
+        b.textContent='Tamu';
+        b.className='badge px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200';
+        $('btnLogout').classList.add('hide');
+    }
+    lucide.createIcons();
+}
+
+async function doRegisterSiswa(){
+    const nisn=$('regNisn').value.trim(), nama=$('regNama').value.trim(), hp=$('regHp').value.trim();
+    if(!nisn||!nama||!hp) return toast('Lengkapi semua data!','er');
+    if(!/^\d{10}$/.test(nisn)) return toast('NISN harus 10 digit angka!','er');
+    if(!/^\d{9,15}$/.test(hp)) return toast('No. HP tidak valid!','er');
+
+    const b=$('btnRegSiswa'); b.innerHTML='Memproses...'; b.disabled=true;
+    try{
+        const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'registerSiswa',nisn,nama,hp})});
+        const d=await r.json();
+        if(d.success){
+            toast('Registrasi berhasil! Silakan login.');
+            hideModal('modalRegisterSiswa');
+            $('logNisn').value=nisn; $('logHp').value=hp; 
+            if($('formNisn')) $('formNisn').value=nisn;
+            showModal('modalLoginSiswa');
+        } else toast(d.message||'Gagal registrasi','er');
+    }catch(e){ toast('Gagal terhubung ke server!','er'); }
+    b.innerHTML='Buat Akun & Lanjut'; b.disabled=false;
+}
+
+async function doLoginSiswa(){
+    const nisn=$('logNisn').value.trim(), hp=$('logHp').value.trim();
+    if(!nisn||!hp) return toast('Isi NISN dan No. HP!','er');
+
+    const b=$('btnLogSiswa'); b.innerHTML='Memproses...'; b.disabled=true;
+    try{
+        const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'loginSiswa',nisn,hp})});
+        const d=await r.json();
+        if(d.success){
+            role='siswa';
+            currentUser={nisn:d.nisn, nama:d.nama};
+            sessionStorage.setItem('spmb_user',JSON.stringify(currentUser));
+            sessionStorage.setItem('spmb_role','siswa');
+            hideModal('modalLoginSiswa');
+            updateUIRole();
+            if($('formNisn')) $('formNisn').value=d.nisn;
+            toast('Login berhasil!');
+            navigateTo('dashboardSiswa');
+        } else toast(d.message||'NISN atau No. HP salah!','er');
+    }catch(e){ toast('Gagal terhubung!','er'); }
+    b.innerHTML='Masuk'; b.disabled=false;
+}
+
+async function doLoginAdmin(){
+    const u=$('admUser').value.trim(), p=$('admPass').value;
+    if(!u||!p) return toast('Isi username & password!','er');
+    const b=$('btnAdmLogin'); b.innerHTML='Memproses...'; b.disabled=true;
+    try{
+        const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'loginAdmin',username:u,password:p})});
+        const d=await r.json();
+        if(d.success){
+            role='admin'; sessionStorage.setItem('spmb_role','admin');
+            hideModal('modalLoginAdmin'); updateUIRole(); toast('Login Panitia berhasil!');
+            navigateTo('dataAdmin');
+        } else toast('Username atau password salah!','er');
+    }catch(e){ toast('Gagal terhubung!','er'); }
+    b.innerHTML='Masuk Sistem'; b.disabled=false;
+}
+
+function logout(){
+    role='guest'; currentUser=null; savedSnapshot=null; isEditingMode=false;
+    sessionStorage.removeItem('spmb_user'); sessionStorage.removeItem('spmb_role');
+    updateUIRole(); 
+    navigateTo('home');
+    toast('Logout berhasil');
+}
+
+window.onload = () => {
+    lucide.createIcons();
+    if($('logNisn')) $('logNisn').addEventListener('input', onNisnInput);
+    if($('regNisn')) $('regNisn').addEventListener('input', onRegNisnInput);
+
+    const savedRole = sessionStorage.getItem('spmb_role');
+    const savedUser = sessionStorage.getItem('spmb_user');
+    if(savedRole){
+        role = savedRole;
+        if(savedUser){ try{ currentUser = JSON.parse(savedUser); }catch(e){} }
+        updateUIRole();
+        if(role==='siswa'){ if($('formNisn')) $('formNisn').value = currentUser?.nisn || ''; navigateTo('dashboardSiswa'); }
+        else if(role==='admin') navigateTo('dataAdmin');
+    } else {
+        navigateTo('home');
+    }
+};
+
+function updateCetakButtonState(isActive) {
+    const btn = $('btnCetakKartu');
+    const icon = $('btnCetakIcon');
+    const title = $('btnCetakTitle');
+    const desc = $('btnCetakDesc');
+    
+    if (!btn) return;
+    
+    if (isActive) {
+        btn.classList.remove('cursor-not-allowed', 'opacity-60');
+        btn.classList.add('cursor-pointer', 'hover:bg-white');
+        btn.onclick = printKartu;
+        
+        if (icon) {
+            icon.className = 'w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center';
+            icon.innerHTML = '<i data-lucide="printer" class="w-5 h-5"></i>';
+        }
+        if (title) {
+            title.textContent = 'Cetak Bukti Daftar';
+            title.className = 'font-black text-slate-800 text-sm';
+        }
+        if (desc) {
+            desc.textContent = 'Cetak kartu tanda pendaftaran sebagai bukti sah.';
+            desc.className = 'text-[10px] text-slate-500';
+        }
+    } else {
+        btn.classList.remove('cursor-pointer', 'hover:bg-white');
+        btn.classList.add('cursor-not-allowed', 'opacity-60');
+        btn.onclick = () => {
+            toast('Anda belum mengisi formulir pendaftaran. Silakan isi formulir terlebih dahulu.', 'er');
+        };
+        
+        if (icon) {
+            icon.className = 'w-10 h-10 bg-slate-200 text-slate-400 rounded-lg flex items-center justify-center';
+            icon.innerHTML = '<i data-lucide="lock" class="w-5 h-5"></i>';
+        }
+        if (title) {
+            title.textContent = 'Cetak Bukti Daftar (Belum Tersedia)';
+            title.className = 'font-black text-slate-400 text-sm';
+        }
+        if (desc) {
+            desc.textContent = 'Isi formulir pendaftaran terlebih dahulu untuk mengaktifkan fitur ini.';
+            desc.className = 'text-[10px] text-slate-400';
+        }
+    }
+    lucide.createIcons();
+}
+
+function lockForm(){
+    if(!$('fSiswa')) return;
+    $('fSiswa').querySelectorAll('input,select,textarea').forEach(el=>{
+        if(el.name==='nisn'){ el.readOnly=true; el.classList.add('input-locked'); return; }
+        el.disabled = true;
+        el.classList.add('input-locked');
+    });
+    if($('btnSave')) $('btnSave').classList.add('hide');
+    if($('formLockNotice')) $('formLockNotice').classList.remove('hide');
+}
+function unlockForm(){
+    if(!$('fSiswa')) return;
+    $('fSiswa').querySelectorAll('input,select,textarea').forEach(el=>{
+        if(el.name==='nisn'){ el.readOnly=true; el.classList.add('input-locked'); return; }
+        el.disabled = false;
+        el.classList.remove('input-locked');
+    });
+    if($('btnSave')) $('btnSave').classList.remove('hide');
+    if($('formLockNotice')) $('formLockNotice').classList.add('hide');
+}
+
+async function loadMyData(){
+    const nisn = getCurrentNisn();
+    if(!nisn) return;
+    
+    if($('dashNisnSiswa')) $('dashNisnSiswa').textContent = nisn;
+    
+    try{
+        const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'getMyData',nisn})});
+        const d=await r.json();
+
+        if(d.success && d.data){
+            const data=d.data;
+            savedSnapshot = data;
+            
+            const displayName = currentUser?.nama || data.namaLengkap || 'Calon Murid';
+            if($('dashNamaSiswa')) $('dashNamaSiswa').textContent = displayName;
+            
+            const badge=$('dashStatusBadge'), info=$('dashInfoEdit'), btnE=$('btnEditBiodata');
+            if($('dashNoDaftar')) $('dashNoDaftar').textContent = data.noPendaftaran || '-';
+
+            updateCetakButtonState(true);
+
+            if(data.status === 'Diterima'){
+                badge.className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black uppercase tracking-wider';
+                badge.innerHTML='<i data-lucide="check-circle" class="w-3 h-3"></i> Diterima';
+                if(btnE) btnE.classList.add('hide');
+                if(info) info.innerHTML = 'Selamat! Data Anda telah <b>Diterima</b> dan tidak dapat diubah lagi.';
+            } else if(data.status === 'Ditolak'){
+                badge.className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-100 text-rose-700 text-xs font-black uppercase tracking-wider';
+                badge.innerHTML='<i data-lucide="x-circle" class="w-3 h-3"></i> Ditolak';
+                if(btnE) btnE.classList.add('hide');
+                if(info) info.innerHTML = 'Data Anda <b>Ditolak</b>. Silakan hubungi panitia untuk informasi lebih lanjut.';
+            } else {
+                badge.className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-700 text-xs font-black uppercase tracking-wider';
+                badge.innerHTML='<i data-lucide="clock" class="w-3 h-3"></i> Menunggu Verifikasi';
+                
+                const editCount = parseInt(data.editCount)||0;
+                if(editCount >= 1){
+                    if(btnE) {
+                        btnE.disabled = true;
+                        btnE.className='tap-scale w-full py-3 bg-slate-300 text-slate-500 rounded-xl font-black text-xs tracking-widest uppercase flex items-center justify-center gap-2 cursor-not-allowed';
+                        btnE.innerHTML='<i data-lucide="lock" class="w-4 h-4"></i> Data Terkunci Permanen';
+                    }
+                    if(info) info.innerHTML='Data sudah pernah diubah 1x dan kini terkunci permanen.';
+                } else {
+                    if(btnE) {
+                        btnE.disabled = false;
+                        btnE.className='tap-scale w-full py-3 bg-indigo-600 text-white rounded-xl font-black text-xs tracking-widest uppercase flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20';
+                        btnE.innerHTML='<i data-lucide="edit-3" class="w-4 h-4"></i> Edit Biodata (Sisa 1x)';
+                    }
+                    if(info) info.innerHTML='Anda masih memiliki <b>1x</b> kesempatan mengubah data.';
+                }
+            }
+
+            const form=$('fSiswa');
+            if(form){
+                Object.keys(data).forEach(k=>{
+                    const el=form.querySelector(`[name="${k}"]`);
+                    if(el && data[k]!==null && data[k]!==undefined){
+                        let v = data[k];
+                        if(el.type==='date' && v){
+                            const dt=new Date(v);
+                            if(!isNaN(dt)) v = dt.toISOString().split('T')[0];
+                        }
+                        el.value = v;
+                    }
+                });
+                if($('formNisn')) $('formNisn').value = nisn;
+                if($('displayJurusan')) $('displayJurusan').textContent = data.jurusan || 'Belum Dipilih';
+            }
+            isEditingMode = false;
+            lockForm();
+        } else {
+            savedSnapshot = null;
+            const displayName = currentUser?.nama || 'Calon Murid';
+            if($('dashNamaSiswa')) $('dashNamaSiswa').textContent = displayName;
+            if($('dashNoDaftar')) $('dashNoDaftar').textContent = '-';
+            if($('dashStatusBadge')) {
+                $('dashStatusBadge').className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-wider';
+                $('dashStatusBadge').innerHTML='<i data-lucide="file-x" class="w-3 h-3"></i> Belum Mendaftar';
+            }
+            if($('dashInfoEdit')) $('dashInfoEdit').innerHTML='Silakan isi formulir pendaftaran terlebih dahulu.';
+            if($('btnEditBiodata')) $('btnEditBiodata').classList.add('hide');
+            
+            updateCetakButtonState(false);
+            
+            unlockForm();
+            isEditingMode = false;
+        }
+        lucide.createIcons();
+    }catch(e){ console.error(e); }
+}
+
+function enterEditMode(){
+    const nisn=getCurrentNisn();
+    if(!nisn || !savedSnapshot) return toast('Belum ada data untuk diedit.','er');
+    if((parseInt(savedSnapshot.editCount)||0) >= 1) return toast('Data sudah terkunci permanen.','er');
+    if(savedSnapshot.status === 'Diterima' || savedSnapshot.status === 'Ditolak') return toast('Data sudah final dan tidak dapat diubah.','er');
+
+    if(!confirm('Anda hanya punya 1x kesempatan mengubah data.\nLanjutkan ke mode edit?')) return;
+
+    isEditingMode = true;
+    unlockForm();
+    if($('bannerEdit')) $('bannerEdit').classList.remove('hide');
+    navigateTo('formSiswa');
+    toast('Mode edit aktif — periksa baik-baik sebelum menyimpan!','ok');
+}
+
+async function submitFormSPMB(e){
+    e.preventDefault();
+    const nisn = getCurrentNisn();
+    if(!nisn){ toast('Sesi tidak valid. Login ulang.','er'); logout(); return; }
+
+    const b=$('btnSave'); if(b) { b.innerHTML='Menyimpan...'; b.disabled=true; }
+
+    const fd = new FormData(e.target);
+    const d = { action:'saveSPMB', nisn:nisn, isEdit:isEditingMode };
+
+    if(savedSnapshot){
+        const keys=['nik','namaLengkap','jenisKelamin','tempatLahir','tanggalLahir','agama',
+                    'noTelepon','noRumah','rt','rw','kelurahan','kecamatan',
+                    'asalSMPMTs','tahunLulus','jalurPendaftaran','jurusan'];
+        keys.forEach(k=>{ if(savedSnapshot[k]!==undefined && savedSnapshot[k]!==null) d[k]=savedSnapshot[k]; });
+    }
+    fd.forEach((v,k)=>{ if(k!=='nisn') d[k]=v; });
+
+    try{
+        const r=await fetch(API,{method:'POST',body:JSON.stringify(d)});
+        const res=await r.json();
+        if(res.success){
+            toast(res.message);
+            isEditingMode=false;
+            if($('bannerEdit')) $('bannerEdit').classList.add('hide');
+            navigateTo('dashboardSiswa');
+        } else {
+            toast(res.message||'Gagal menyimpan','er');
+            if(res.alreadyExists || res.editLimitReached){ isEditingMode=false; navigateTo('dashboardSiswa'); }
+        }
+    }catch(err){ toast('Gagal terhubung!','er'); }
+
+    if(b) {
+        b.innerHTML='<i data-lucide="send" class="w-4 h-4"></i> Simpan & Kirim Data';
+        b.disabled=false; 
+    }
+    lucide.createIcons();
+}
+
+async function printKartu(){
+    if (!savedSnapshot) {
+        return toast('Anda belum mengisi formulir pendaftaran. Silakan isi formulir terlebih dahulu.', 'er');
+    }
+    
+    const nisn = getCurrentNisn();
+    if(!nisn){ toast('Sesi tidak valid!','er'); return; }
+
+    toast('Menyiapkan kartu...');
+    try{
+        const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'getMyData',nisn})});
+        const res=await r.json();
+        if(!res.success || !res.data){
+            return toast('Data belum tersedia. Isi formulir dulu.','er');
+        }
+        const s=res.data;
+        const statusCls = s.status==='Diterima' ? 'st-ok' : s.status==='Ditolak' ? 'st-no' : 'st-wait';
+        const displayName = currentUser?.nama || s.namaLengkap || 'Calon Murid';
+
+        const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
+<title>Kartu Pendaftaran - ${displayName}</title>
+<style>
+@page{size:A4;margin:14mm}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;background:#f1f5f9;padding:20px;color:#1e293b}
+.kartu{max-width:780px;margin:0 auto;background:#fff;border:3px solid #059669;border-radius:12px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+.hd{background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:22px;text-align:center}
+.hd h1{font-size:20px;letter-spacing:1px}
+.hd h2{font-size:14px;font-weight:400;opacity:.95;margin-top:4px}
+.hd .no{margin-top:12px;display:inline-block;background:rgba(255,255,255,.22);padding:6px 22px;border-radius:20px;font-size:15px;font-weight:700}
+.bd{padding:24px}
+.sec{margin-bottom:18px}
+.sec h3{font-size:12px;color:#059669;border-bottom:2px solid #059669;padding-bottom:4px;margin-bottom:10px;letter-spacing:.5px}
+.row{display:flex;font-size:12.5px;margin-bottom:6px}
+.lb{width:170px;font-weight:600;color:#64748b}
+.vl{flex:1;color:#0f172a;font-weight:500}
+.st{display:inline-block;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:700}
+.st-ok{background:#d1fae5;color:#065f46}.st-no{background:#fee2e2;color:#991b1b}.st-wait{background:#fef3c7;color:#92400e}
+.ft{background:#f8fafc;padding:18px;text-align:center;border-top:2px solid #e2e8f0;font-size:10.5px;color:#647480}
+.ttd{margin-top:26px;display:flex;justify-content:space-around}
+.ttd div{text-align:center;font-size:11.5px}
+.ttd .nm{margin-top:52px;font-weight:700;border-top:1px solid #334155;padding-top:5px;min-width:190px;display:inline-block}
+.btn{position:fixed;top:18px;right:18px;background:#059669;color:#fff;border:none;padding:12px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;box-shadow:0 4px 14px rgba(5,150,105,.35)}
+@media print{body{background:#fff;padding:0}.kartu{box-shadow:none}.btn{display:none}}
+</style></head><body>
+<button class="btn" onclick="window.print()">🖨️ Cetak</button>
+<div class="kartu">
+  <div class="hd">
+    <h1>KARTU TANDA PENDAFTARAN SPMB</h1>
+    <h2>SMK NEGERI 2 TEGALSARI — TAHUN PELAJARAN 2026/2027</h2>
+    <div class="no">${s.noPendaftaran||'-'}</div>
+  </div>
+  <div class="bd">
+    <div class="sec"><h3>A. IDENTITAS CALON MURID</h3>
+      <div class="row"><div class="lb">NISN</div><div class="vl">${s.nisn||'-'}</div></div>
+      <div class="row"><div class="lb">NIK</div><div class="vl">${s.nik||'-'}</div></div>
+      <div class="row"><div class="lb">Nama Lengkap</div><div class="vl">${displayName}</div></div>
+      <div class="row"><div class="lb">Jenis Kelamin</div><div class="vl">${s.jenisKelamin||'-'}</div></div>
+      <div class="row"><div class="lb">Tempat, Tanggal Lahir</div><div class="vl">${s.ttlCombined||'-'}</div></div>
+      <div class="row"><div class="lb">Agama</div><div class="vl">${s.agama||'-'}</div></div>
+      <div class="row"><div class="lb">No. HP / WhatsApp</div><div class="vl">${s.noTelepon||'-'}</div></div>
+    </div>
+    <div class="sec"><h3>B. ALAMAT</h3>
+      <div class="row"><div class="lb">Alamat Lengkap</div><div class="vl">${s.alamat||'-'}</div></div>
+    </div>
+    <div class="sec"><h3>C. PENDIDIKAN &amp; MINAT</h3>
+      <div class="row"><div class="lb">Asal SMP / MTs</div><div class="vl">${s.asalSMPMTs||'-'}</div></div>
+      <div class="row"><div class="lb">Tahun Lulus</div><div class="vl">${s.tahunLulus||'-'}</div></div>
+      <div class="row"><div class="lb">Jalur Pendaftaran</div><div class="vl">${s.jalurPendaftaran||'-'}</div></div>
+      <div class="row"><div class="lb">Minat Jurusan</div><div class="vl">${s.jurusan||'-'}</div></div>
+      <div class="row"><div class="lb">Status</div><div class="vl"><span class="st ${statusCls}">${s.status||'Menunggu'}</span></div></div>
+    </div>
+  </div>
+  <div class="ft">
+    <p>Kartu ini wajib dibawa pada saat pelaksanaan seleksi / daftar ulang.</p>
+    <p>Data yang tercantum menjadi tanggung jawab penuh calon murid.</p>
+    <div class="ttd">
+      <div><span>Tegalsari, ${new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}</span><br><span class="nm">Panitia SPMB</span></div>
+      <div><span>Calon Murid,</span><br><span class="nm">${displayName}</span></div>
+    </div>
+  </div>
+</div></body></html>`;
+
+        const w = window.open('','_blank');
+        if(!w){ return toast('Izinkan pop-up untuk mencetak.','er'); }
+        w.document.open(); w.document.write(html); w.document.close();
+
+    }catch(err){ toast('Gagal memuat data kartu.','er'); }
+}
+
+async function loadDataAdmin(){
+    const tb=$('tbody');
+    if(tb) tb.innerHTML='<tr><td colspan="7" class="p-6 text-center"><div class="animate-spin w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto mb-2"></div><p class="text-[9px] font-bold text-slate-400">Memuat data...</p></td></tr>';
+    try{
+        const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'getAllDataSPMB'})});
+        const res=await r.json();
+        if(res.success){ dataAll=res.data; applyFilters(); }
+    }catch(e){ if(tb) tb.innerHTML='<tr><td colspan="7" class="p-6 text-center text-rose-500 font-bold">Gagal memuat data</td></tr>'; }
+}
+
+function applyFilters(){
+    const kw=$('search') ? $('search').value.toLowerCase().trim() : '';
+    const j=$('filterJurusan') ? $('filterJurusan').value : '';
+    const s=$('filterStatus') ? $('filterStatus').value : '';
+    
+    dataFilter = dataAll.filter(r=>{
+        const m1 = kw==='' || String(r.nisn||'').toLowerCase().includes(kw) || String(r.namaLengkap||'').toLowerCase().includes(kw) || String(r.asalSMPMTs||'').toLowerCase().includes(kw);
+        const m2 = j==='' || r.jurusan===j;
+        const m3 = s==='' || r.status===s;
+        return m1&&m2&&m3;
+    });
+    renderAdminTable();
+}
+
+function renderAdminTable(){
+    const tb=$('tbody');
+    if(!dataFilter.length){
+        if(tb) tb.innerHTML='<tr><td colspan="7" class="p-6 text-center text-slate-400 font-bold">Tidak ada data</td></tr>';
+        if($('sTotal')) $('sTotal').textContent=0; 
+        if($('sDiterima')) $('sDiterima').textContent=0; 
+        if($('sPending')) $('sPending').textContent=0; 
+        return;
+    }
+    if(tb) {
+        tb.innerHTML = dataFilter.map((r,i)=>`
+          <tr class="border-b border-slate-50 hover:bg-indigo-50/30 transition-colors">
+            <td class="p-3 text-xs font-bold text-slate-400">${i+1}</td>
+            <td class="p-3 text-xs font-bold text-slate-700 font-mono">${r.nisn||'-'}</td>
+            <td class="p-3 font-bold text-slate-800 text-xs">${r.namaLengkap||'-'}</td>
+            <td class="p-3 text-xs text-slate-600">${r.asalSMPMTs||'-'}</td>
+            <td class="p-3"><span class="px-1.5 py-0.5 bg-slate-100 rounded text-[9px] font-bold text-slate-600">${r.jurusan||'-'}</span></td>
+            <td class="p-3"><span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold ${r.status==='Diterima'?'bg-emerald-100 text-emerald-600':r.status==='Ditolak'?'bg-rose-100 text-rose-600':'bg-amber-100 text-amber-600'}">${r.status||'Menunggu'}</span></td>
+            <td class="p-3 text-center"><div class="flex justify-center gap-1">
+              ${r.status!=='Diterima'?`<button class="w-7 h-7 flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-colors tap-scale" onclick="updateStatus('${r.nisn}','Diterima')"><i data-lucide="check" class="w-3 h-3"></i></button>`:''}
+              ${r.status!=='Ditolak'?`<button class="w-7 h-7 flex items-center justify-center bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-colors tap-scale" onclick="updateStatus('${r.nisn}','Ditolak')"><i data-lucide="x" class="w-3 h-3"></i></button>`:''}
+            </div></td>
+          </tr>`).join('');
+    }
+    if($('sTotal')) $('sTotal').textContent=dataFilter.length;
+    if($('sDiterima')) $('sDiterima').textContent=dataFilter.filter(d=>d.status==='Diterima').length;
+    if($('sPending')) $('sPending').textContent=dataFilter.filter(d=>d.status==='Menunggu').length;
+    lucide.createIcons();
+}
+
+async function updateStatus(nisn,status){
+    if(!confirm(`Ubah status menjadi ${status}?`)) return;
+    try{
+        const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'updateStatusSPMB',nisn,status})});
+        const res=await r.json();
+        if(res.success){ toast(`Status → ${status}`); loadDataAdmin(); } else toast('Gagal update','er');
+    }catch(e){ toast('Gagal terhubung','er'); }
+}
+
+function exportXls(){
+    if(!dataFilter.length) return toast('Tidak ada data!','er');
+    const rows = dataFilter.map((r,i)=>({
+        'No':i+1,'No Pendaftaran':r.noPendaftaran,'NISN':r.nisn,'NIK':r.nik,'Nama':r.namaLengkap,
+        'L/P':r.jenisKelamin,'TTL':r.ttlCombined,'Agama':r.agama,'No HP':r.noTelepon,'Alamat':r.alamat,
+        'Asal Sekolah':r.asalSMPMTs,'Tahun Lulus':r.tahunLulus,'Jalur':r.jalurPendaftaran,
+        'Jurusan':r.jurusan,'Status':r.status,'Jml Edit':r.editCount,'Daftar Pada':r.timestamp
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows), wb=XLSX.utils.book_new();
+    ws['!cols']=[{wch:5},{wch:16},{wch:12},{wch:18},{wch:28},{wch:8},{wch:24},{wch:10},{wch:14},{wch:36},{wch:24},{wch:10},{wch:12},{wch:10},{wch:12},{wch:8},{wch:20}];
+    XLSX.utils.book_append_sheet(wb,ws,'Data SPMB');
+    XLSX.writeFile(wb,`Data_Pendaftar_SPMB_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast('Excel berhasil diunduh!');
+}
+</script>
+</body>
+</html>
